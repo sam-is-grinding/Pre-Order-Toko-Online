@@ -1,0 +1,38 @@
+[
+    {
+        "idOrder": "ORD001",
+        "idProduk": "P001",
+        "tanggal": "2025-03-07",
+        "kuantitas": 1
+    },
+    {
+        "idOrder": "ORD002",
+        "idProduk": "P099",
+        "tanggal": "2025-03-08",
+        "kuantitas": 1
+    },
+    {
+        "idOrder": "ORD004",
+        "idProduk": "P099",
+        "tanggal": "2025-04-01",
+        "kuantitas": 4
+    },
+    {
+        "idOrder": "ORD005",
+        "idProduk": "P001",
+        "tanggal": "2025-04-02",
+        "kuantitas": 1
+    },
+    {
+        "idOrder": "ORD006",
+        "idProduk": "P001",
+        "tanggal": "2025-05-27",
+        "kuantitas": 3
+    },
+    {
+        "idOrder": "ORD007",
+        "idProduk": "P002",
+        "tanggal": "2025-05-28",
+        "kuantitas": 2
+    }
+]
