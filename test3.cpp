@@ -3,8 +3,6 @@
 #include "rapidjson/filereadstream.h"
 #include "rapidjson/filewritestream.h" 
 #include "rapidjson/prettywriter.h"
-#include <cstdio>	 // for FILE*, fopen, fclose
-#include <stdexcept> // for runtime_error
 #include <deque>
 #include <unordered_map>
 #include <vector>
@@ -12,6 +10,7 @@
 #include <memory>
 #include <string>
 #include <sstream>
+#include <stack>
 
 #define CLEAR_SCREEN "\033[2J\033[1;1H"
 
@@ -37,6 +36,7 @@ unordered_map<string, string> produkListById;
 unordered_map<string, string> idListByProduk;
 unordered_map<string, shared_ptr<Order>> orderListById;
 unordered_map<string, vector<shared_ptr<Order>>> orderListByProduk;
+stack<pair<shared_ptr<Order>, int>> undoStack;
 
 
 // declarations
@@ -101,6 +101,33 @@ void printOrderByProduk(string namaProduk) {
 }
 
 
+void batalkanPesanan(string idOrder) {
+    for (int i = 0; i < orderQueue.size(); i++) {
+        if (orderQueue[i]->getIdOrder() == idOrder) {
+            undoStack.push({orderQueue[i], i});
+            orderQueue.erase(orderQueue.begin() + i);
+            cout << "Order dengan ID [" << idOrder << "] berhasil dihapus.\n";
+            cout << endl;
+            return;
+        }
+    }
+    cout << "PEMBATALAN GAGAL. Order dengan ID [" << idOrder << "] tidak ditemukan.\n";
+    cout << endl;
+}
+
+void undoPembatalan() {
+    if (!undoStack.empty()) {
+        auto lastDeleted = undoStack.top();
+        orderQueue.insert(orderQueue.begin() + lastDeleted.second, lastDeleted.first);
+        cout << "Undo-pembatalan order dengan ID [" << lastDeleted.first->getIdOrder() << "] berhasil.\n" << endl;
+        undoStack.pop();
+    } else {
+        cout << "UNDO-PEMBATALAN GAGAL. Tidak ada yang bisa diundo." << endl;
+    }
+}
+
+
+
 void printGreetings() {
     cout << R"(
  ___       ___   ___   ___   ____  ___      
@@ -114,6 +141,8 @@ void printGreetings() {
          | [list (n)]           : list semua order                    |
          | [produk (nama) (n)]  : list order berdasarkan NAMA produk  |
          | [order (id) (n)]     : list order berdasarkan ID order     |
+         | [batal (id)]         : batalkan order                      |
+         | [undo]               : undo pembatalkan order terakhir     |
          | [exit]               : keluar dari program                 |
          +------------------------------------------------------------+
          | Sorting options (n):                                       |
@@ -170,6 +199,11 @@ int main() {
             iss >> args;
             iss >> option;
             printOrderById(args);
+        } else if (command == "BATAL") {
+            iss >> args;
+            batalkanPesanan(args);
+        } else if (command == "UNDO") {
+            undoPembatalan();
         } else {
             cout << "gaada beruh" << endl;
             cout << command << endl;
