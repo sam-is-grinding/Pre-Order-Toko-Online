@@ -17,17 +17,44 @@
 using namespace std;
 
 
+enum class StatusOrder {
+    Aktif,
+    Dibatalkan,
+    Selesai,
+    Invalid
+};
+
+string statusToSting(StatusOrder status) {
+    switch (status) {
+        case StatusOrder::Aktif: return "Aktif";
+        case StatusOrder::Dibatalkan: return "Dibatalkan";
+        case StatusOrder::Selesai: return "Selesai";
+        default: return "lol";
+    }
+}
+
+StatusOrder stringToStatus(const string& str) {
+    if (str == "Aktif") return StatusOrder::Aktif;
+    if (str == "Dibatalkan") return StatusOrder::Dibatalkan;
+    if (str == "Selesai") return StatusOrder::Selesai;
+    return StatusOrder::Invalid;
+}
+
+
 class Order {
 	string idOrder;
     string idProduk;
     string tanggal;
+    StatusOrder status;
 	int kuantitas;
 public:
-    Order (string idOrder, string idProduk, string tanggal, int kuantitas) : idOrder(idOrder), idProduk(idProduk), tanggal(tanggal), kuantitas(kuantitas) {}
+    Order (string idOrder, string idProduk, string tanggal, int kuantitas, StatusOrder status) : idOrder(idOrder), idProduk(idProduk), tanggal(tanggal), kuantitas(kuantitas), status(status) {}
     string getIdOrder() { return idOrder; }
 	string getIdProduk() { return idProduk; }
 	string getTanggal() { return tanggal; }
 	int getKuantitas() { return kuantitas; }
+    StatusOrder getStatus() {return status; }
+    void setStatus(StatusOrder s) {status = s; }
 };
 
 // globals
@@ -58,6 +85,7 @@ void printOrder() {
 			 << ", Barang: " << produkListById.find(orderPtr->getIdProduk())->second
 			 << ", Tanggal Order: " << orderPtr->getTanggal()
 			 << ", Kuantitas: " << orderPtr->getKuantitas()
+             << ", Status: " << statusToSting(orderPtr->getStatus())
 			 << "\n";
 	}
 	cout << endl;
@@ -71,6 +99,7 @@ void printOrderById(string idOrder) {
         cout << "Barang: " << produkListById.find(orderPtr->getIdProduk())->second
              << ", Tanggal Order: " << orderPtr->getTanggal()
 			 << ", Kuantitas: " << orderPtr->getKuantitas()
+			 << ", Status: " << statusToSting(orderPtr->getStatus())
 			 << "\n";
         cout << endl;
     } else {
@@ -79,21 +108,23 @@ void printOrderById(string idOrder) {
     }
 }
 
+
 void printOrderByProduk(string namaProduk) {
-	auto it = orderListByProduk.find(idListByProduk.find(namaProduk)->second);
-    if (it != orderListByProduk.end()) {
-		// sort bedasarkan tanggal
+    auto _it = idListByProduk.find(namaProduk);
+    if (_it != idListByProduk.end()) {
+        auto it = orderListByProduk.find(_it->second);
+        //sort bedasarkan tanggal
 		sort(it->second.begin(), it->second.end(), [](const shared_ptr<Order>& a, const shared_ptr<Order>& b) {
 			return a->getTanggal() < b->getTanggal();
-		});
-		cout << "Order dengan produk [" << namaProduk << "] ditemukan!\n";
-		for (auto& orderPtr : it->second) {
-			cout << "Order: " << orderPtr->getIdOrder()
-				 << ", Tanggal Order: " << orderPtr->getTanggal()
-				 << ", Kuantitas: " << orderPtr->getKuantitas()
-				 << "\n";
+        });
+        cout << "Order dengan produk [" << namaProduk << "] ditemukan!\n";
+        for (auto& orderPtr : it->second) {
+            cout << "Order: " << orderPtr->getIdOrder()
+                << ", Tanggal Order: " << orderPtr->getTanggal()
+                << ", Kuantitas: " << orderPtr->getKuantitas()
+                << ", Status: " << statusToSting(orderPtr->getStatus())
+                << "\n";
         }
-	   cout << endl;
     } else {
         cout << "Order dengan produk [" << namaProduk << "] tidak ditemukan.\n";
 		cout << endl;
@@ -103,10 +134,12 @@ void printOrderByProduk(string namaProduk) {
 
 void batalkanPesanan(string idOrder) {
     for (int i = 0; i < orderQueue.size(); i++) {
-        if (orderQueue[i]->getIdOrder() == idOrder) {
-            undoStack.push({orderQueue[i], i});
+        shared_ptr<Order> order = orderQueue[i];
+        if (order->getIdOrder() == idOrder) {
+            order->setStatus(StatusOrder::Dibatalkan);
+            undoStack.push({order, i});
             orderQueue.erase(orderQueue.begin() + i);
-            cout << "Order dengan ID [" << idOrder << "] berhasil dihapus.\n";
+            cout << "Order dengan ID [" << idOrder << "] berhasil dibatalkan.\n";
             cout << endl;
             return;
         }
@@ -118,11 +151,13 @@ void batalkanPesanan(string idOrder) {
 void undoPembatalan() {
     if (!undoStack.empty()) {
         auto lastDeleted = undoStack.top();
-        orderQueue.insert(orderQueue.begin() + lastDeleted.second, lastDeleted.first);
-        cout << "Undo-pembatalan order dengan ID [" << lastDeleted.first->getIdOrder() << "] berhasil.\n" << endl;
+        shared_ptr<Order> order = lastDeleted.first;
+        order->setStatus(StatusOrder::Aktif);
+        orderQueue.insert(orderQueue.begin() + lastDeleted.second, order);
+        cout << "Undo-pembatalan order dengan ID [" << order->getIdOrder() << "] berhasil.\n" << endl;
         undoStack.pop();
     } else {
-        cout << "UNDO-PEMBATALAN GAGAL. Tidak ada yang bisa diundo." << endl;
+        cout << "UNDO-PEMBATALAN GAGAL. Tidak ada yang bisa diundo.\n" << endl;
     }
 }
 
@@ -163,13 +198,13 @@ void toUpper(string& s) {
 int main() {
 	// load produk & order dari .json
     loadProdukFromJson("list-produk.json");
-	loadOrderFromJson("list-order.json");
-	
-
+	loadOrderFromJson("list-order-awal.json");
+    
 	// sort orderQueue berdasarkan tanggal
 	sort(orderQueue.begin(), orderQueue.end(), [](const shared_ptr<Order>& a, const shared_ptr<Order>& b) {
-		return a->getTanggal() < b->getTanggal();
+        return a->getTanggal() < b->getTanggal();
 	});
+
 
     cout << CLEAR_SCREEN;
     printGreetings();
@@ -217,6 +252,8 @@ int main() {
         iss.str(input);
         iss >> command;
         }
+    
+    saveOrderToJson("list-order.json");
 }
 
 
@@ -255,11 +292,12 @@ void loadProdukFromJson(const char *path) {
 void loadOrderFromJson(const char *path) {
 	rapidjson::Document doc = loadJsonFile(path);
 	for (const auto& order : doc.GetArray()) {
-		string idOrder = order["idOrder"].GetString();
-		string idProduk = order["idProduk"].GetString();
-		string tanggal  = order["tanggal"].GetString();
-		int kuantitas   = order["kuantitas"].GetInt();
-		registerOrder(make_shared<Order>(idOrder, idProduk, tanggal, kuantitas));
+		string idOrder      = order["idOrder"].GetString();
+		string idProduk     = order["idProduk"].GetString();
+		string tanggal      = order["tanggal"].GetString();
+		int kuantitas       = order["kuantitas"].GetInt();
+        StatusOrder status  = stringToStatus(order["status"].GetString()); 
+		registerOrder(make_shared<Order>(idOrder, idProduk, tanggal, kuantitas, status));
 	}
 }
 
@@ -277,6 +315,7 @@ void saveOrderToJson(const char* path) {
 		obj.AddMember("idProduk", rapidjson::Value().SetString(order.getIdProduk().c_str(), allocator), allocator);
 		obj.AddMember("tanggal", rapidjson::Value().SetString(order.getTanggal().c_str(), allocator), allocator);
 		obj.AddMember("kuantitas", order.getKuantitas(), allocator);
+        obj.AddMember("status", rapidjson::Value().SetString(statusToSting(order.getStatus()).c_str(), allocator), allocator);
 
         doc.PushBack(obj, allocator);
     }
