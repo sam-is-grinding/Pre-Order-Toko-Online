@@ -78,9 +78,64 @@ void registerOrder(shared_ptr<Order> order) {
 	orderListByProduk[order->getIdProduk()].push_back(order);	
 }
 
-void printOrder() {
+void sortOrders(vector<std::shared_ptr<Order>>& orders, string option) {
+    if (option == "") { // kosong, default ke sort ascending tanggal
+        sort(orders.begin(), orders.end(), [](const shared_ptr<Order>& a, const shared_ptr<Order>& b) {
+            return a->getTanggal() < b->getTanggal();
+        });
+	    cout << "Opsi sorting kosong. Order disort secara ascending berdasarkan tanggal.\n";
+    } else if (option == "AT") { // sort ascending tanggal
+        sort(orders.begin(), orders.end(), [](const shared_ptr<Order>& a, const shared_ptr<Order>& b) {
+            return a->getTanggal() < b->getTanggal();
+        });
+	    cout << "Sorting ascending berdasarkan tanggal berhasil!\n";
+    } else if (option == "DT") { // sort descending tanggal
+        sort(orders.begin(), orders.end(), [](const shared_ptr<Order>& a, const shared_ptr<Order>& b) {
+            return a->getTanggal() > b->getTanggal();
+        });
+	    cout << "Sorting descending berdasarkan tanggal berhasil!\n";
+    } else if (option == "AK") { // sort ascending kuantitas
+        sort(orders.begin(), orders.end(), [](const shared_ptr<Order>& a, const shared_ptr<Order>& b) {
+            return a->getKuantitas() < b->getKuantitas();
+        });
+	    cout << "Sorting ascending berdasarkan kuantitas berhasil!\n";
+    } else if (option == "DK") { // sort descending kuantitas
+        sort(orders.begin(), orders.end(), [](const shared_ptr<Order>& a, const shared_ptr<Order>& b) {
+            return a->getKuantitas() > b->getKuantitas();
+        });
+	    cout << "Sorting descending berdasarkan kuantitas berhasil!\n";
+    } else {
+	    cout << "SORTING GAGAL. Opsi sort berdasarkan [" << option << "] tidak tersedia.\n";
+        cout << option << endl;
+    }
+}
+
+void printDaftarTunggu(string option) {
+    vector<shared_ptr<Order>> orders(orderQueue.begin(), orderQueue.end());
+    sortOrders(orders, option);
+
 	cout << "List order:\n";
-	for (auto& orderPtr : orderQueue) {
+	for (auto& orderPtr : orders) {
+        cout << "Order: " << orderPtr->getIdOrder()
+			 << ", Barang: " << produkListById.find(orderPtr->getIdProduk())->second
+			 << ", Tanggal Order: " << orderPtr->getTanggal()
+			 << ", Kuantitas: " << orderPtr->getKuantitas()
+             << ", Status: " << statusToSting(orderPtr->getStatus())
+			 << "\n";
+	}
+	cout << endl;
+}
+
+void printSemuaOrder(string option) {
+    vector<shared_ptr<Order>> orders;
+
+    for (const auto& [id, orderPtr] : orderListById) {
+        orders.push_back(orderPtr);
+    }
+    sortOrders(orders, option);
+
+	cout << "List order:\n";
+    for (auto& orderPtr : orders) {
         cout << "Order: " << orderPtr->getIdOrder()
 			 << ", Barang: " << produkListById.find(orderPtr->getIdProduk())->second
 			 << ", Tanggal Order: " << orderPtr->getTanggal()
@@ -173,18 +228,19 @@ void printGreetings() {
          +------------------------------------------------------------+
          |                    ORDER COMMANDS                          |
          +------------------------------------------------------------+
-         | [list (n)]           : list semua order                    |
-         | [produk (nama) (n)]  : list order berdasarkan NAMA produk  |
-         | [order (id) (n)]     : list order berdasarkan ID order     |
+         | [daftar (n)]         : lihat daftar tunggu                 |
+         | [semua (n)]          : lihat semua order                   |
+         | [produk (nama) (n)]  : lihat order berdasarkan NAMA produk |
+         | [order (id) (n)]     : lihat order berdasarkan ID order    |
          | [batal (id)]         : batalkan order                      |
          | [undo]               : undo pembatalkan order terakhir     |
          | [exit]               : keluar dari program                 |
          +------------------------------------------------------------+
          | Sorting options (n):                                       |
-         |   - at : ascending tanggal                                 |
-         |   - dt : descending tanggal                                |
-         |   - ak : ascending kuantitas                               |
-         |   - dk : descending kuantitas                              |
+         |      at : ascending tanggal                                |
+         |      dt : descending tanggal                               |
+         |      ak : ascending kuantitas                              |
+         |      dk : descending kuantitas                             |
          +------------------------------------------------------------+
          
          )" << std::endl;
@@ -200,10 +256,10 @@ int main() {
     loadProdukFromJson("list-produk.json");
 	loadOrderFromJson("list-order-awal.json");
     
-	// sort orderQueue berdasarkan tanggal
-	sort(orderQueue.begin(), orderQueue.end(), [](const shared_ptr<Order>& a, const shared_ptr<Order>& b) {
-        return a->getTanggal() < b->getTanggal();
-	});
+	// // sort orderQueue berdasarkan tanggal
+	// sort(orderQueue.begin(), orderQueue.end(), [](const shared_ptr<Order>& a, const shared_ptr<Order>& b) {
+    //     return a->getTanggal() < b->getTanggal();
+	// });
 
 
     cout << CLEAR_SCREEN;
@@ -223,9 +279,12 @@ int main() {
         cout << CLEAR_SCREEN;
         printGreetings();
 
-        if (command == "LIST") {
+        if (command == "DAFTAR") {
             iss >> option;  // kosong kalo gaada -n
-            printOrder();
+            printDaftarTunggu(option);
+        } else if (command == "SEMUA") {
+            iss >> option;  // kosong kalo gaada -n
+            printSemuaOrder(option);
         } else if (command == "PRODUK") {
             iss >> args;
             iss >> option;
@@ -260,9 +319,9 @@ int main() {
 
 rapidjson::Document loadJsonFile(const char *path) {
 	FILE *fp = fopen(path, "rb");
-	if (!fp) {
-		throw runtime_error("Failed to open file");
-	}
+	// if (!fp) {
+	// 	throw runtime_error("Failed to open file");
+	// }
 
 	char readBuffer[65536];
 	rapidjson::FileReadStream is(fp, readBuffer, sizeof(readBuffer));
@@ -272,9 +331,9 @@ rapidjson::Document loadJsonFile(const char *path) {
 
 	fclose(fp);
 
-	if (doc.HasParseError()) {
-		throw runtime_error("Failed to parse JSON");
-	}
+	// if (doc.HasParseError()) {
+	// 	throw runtime_error("Failed to parse JSON");
+	// }
 
 	return doc;
 }
@@ -307,7 +366,7 @@ void saveOrderToJson(const char* path) {
     doc.SetArray();
     auto& allocator = doc.GetAllocator();
 
-    for (auto& orderPtr : orderQueue) {
+    for (auto& [id, orderPtr] : orderListById) {
         Order& order = *orderPtr;
 
         rapidjson::Value obj(rapidjson::kObjectType);
@@ -321,7 +380,7 @@ void saveOrderToJson(const char* path) {
     }
 
     FILE* fp = fopen(path, "wb");
-    if (!fp) throw runtime_error("Failed to open file");
+    // if (!fp) throw runtime_error("Failed to open file");
 
     char writeBuffer[65536];
     rapidjson::FileWriteStream os(fp, writeBuffer, sizeof(writeBuffer));
