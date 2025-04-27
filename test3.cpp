@@ -11,6 +11,7 @@
 #include <string>
 #include <sstream>
 #include <stack>
+#include <iomanip>
 
 #define CLEAR_SCREEN "\033[2J\033[1;1H"
 
@@ -78,12 +79,13 @@ void registerOrder(shared_ptr<Order> order) {
 	orderListByProduk[order->getIdProduk()].push_back(order);	
 }
 
+
 void sortOrders(vector<std::shared_ptr<Order>>& orders, string option) {
     if (option == "") { // kosong, default ke sort ascending tanggal
         sort(orders.begin(), orders.end(), [](const shared_ptr<Order>& a, const shared_ptr<Order>& b) {
             return a->getTanggal() < b->getTanggal();
         });
-	    cout << "Opsi sorting kosong. Order disort secara ascending berdasarkan tanggal.\n";
+	    cout << "Opsi sorting kosong.\nOrder disort secara ascending berdasarkan tanggal.\n";
     } else if (option == "AT") { // sort ascending tanggal
         sort(orders.begin(), orders.end(), [](const shared_ptr<Order>& a, const shared_ptr<Order>& b) {
             return a->getTanggal() < b->getTanggal();
@@ -106,56 +108,88 @@ void sortOrders(vector<std::shared_ptr<Order>>& orders, string option) {
 	    cout << "Sorting descending berdasarkan kuantitas berhasil!\n";
     } else {
 	    cout << "SORTING GAGAL. Opsi sort berdasarkan [" << option << "] tidak tersedia.\n";
-        cout << option << endl;
+        sort(orders.begin(), orders.end(), [](const shared_ptr<Order>& a, const shared_ptr<Order>& b) {
+            return a->getTanggal() < b->getTanggal();
+        });
+	    cout << "Order disort secara ascending berdasarkan tanggal.\n";
     }
 }
+
 
 void printDaftarTunggu(string option) {
     vector<shared_ptr<Order>> orders(orderQueue.begin(), orderQueue.end());
     sortOrders(orders, option);
 
-	cout << "List order:\n";
-	for (auto& orderPtr : orders) {
-        cout << "Order: " << orderPtr->getIdOrder()
-			 << ", Barang: " << produkListById.find(orderPtr->getIdProduk())->second
-			 << ", Tanggal Order: " << orderPtr->getTanggal()
-			 << ", Kuantitas: " << orderPtr->getKuantitas()
-             << ", Status: " << statusToSting(orderPtr->getStatus())
-			 << "\n";
-	}
-	cout << endl;
+    cout << left;
+    cout << setw(10) << "ORDER" 
+         << setw(20) << "BARANG" 
+         << setw(15) << "TANGGAL" 
+         << setw(10) << "QTY" 
+         << endl;
+
+    cout << string((10+20+15+10), '-') << endl;
+
+    for (auto& orderPtr : orders) {
+        cout << setw(10) << orderPtr->getIdOrder()
+             << setw(20) << produkListById.find(orderPtr->getIdProduk())->second
+             << setw(15) << orderPtr->getTanggal()
+             << setw(10) << orderPtr->getKuantitas()
+             << endl;
+    }
+    cout << endl;
 }
+
 
 void printSemuaOrder(string option) {
     vector<shared_ptr<Order>> orders;
 
-    for (const auto& [id, orderPtr] : orderListById) {
+    for (auto& [id, orderPtr] : orderListById) {
         orders.push_back(orderPtr);
     }
     sortOrders(orders, option);
 
-	cout << "List order:\n";
+    cout << left;
+    cout << setw(10) << "ORDER" 
+         << setw(20) << "BARANG" 
+         << setw(15) << "TANGGAL" 
+         << setw(10) << "QTY" 
+         << setw(10) << "STATUS" 
+         << endl;
+
+    cout << string((10+20+15+10+10), '-') << endl;
+
     for (auto& orderPtr : orders) {
-        cout << "Order: " << orderPtr->getIdOrder()
-			 << ", Barang: " << produkListById.find(orderPtr->getIdProduk())->second
-			 << ", Tanggal Order: " << orderPtr->getTanggal()
-			 << ", Kuantitas: " << orderPtr->getKuantitas()
-             << ", Status: " << statusToSting(orderPtr->getStatus())
-			 << "\n";
-	}
-	cout << endl;
+        cout << setw(10) << orderPtr->getIdOrder()
+             << setw(20) << produkListById.find(orderPtr->getIdProduk())->second
+             << setw(15) << orderPtr->getTanggal()
+             << setw(10) << orderPtr->getKuantitas()
+             << setw(10) << statusToSting(orderPtr->getStatus())
+             << endl;
+    }
+    cout << endl;
 }
+
 
 void printOrderById(string idOrder) {
 	auto it = orderListById.find(idOrder);
     if (it != orderListById.end()) {
         auto& orderPtr = it->second;
-		cout << "Order dengan ID [" << idOrder << "] ditemukan!\n";
-        cout << "Barang: " << produkListById.find(orderPtr->getIdProduk())->second
-             << ", Tanggal Order: " << orderPtr->getTanggal()
-			 << ", Kuantitas: " << orderPtr->getKuantitas()
-			 << ", Status: " << statusToSting(orderPtr->getStatus())
-			 << "\n";
+        cout << "Order dengan ID [" << idOrder << "] ditemukan!\n";
+        
+        cout << left;
+        cout << setw(20) << "BARANG" 
+             << setw(15) << "TANGGAL" 
+             << setw(10) << "QTY" 
+             << setw(10) << "STATUS" 
+             << endl;
+    
+        cout << string((20+15+10+10), '-') << endl;
+
+        cout << setw(20) << produkListById.find(orderPtr->getIdProduk())->second
+             << setw(15) << orderPtr->getTanggal()
+             << setw(10) << orderPtr->getKuantitas()
+             << setw(10) << statusToSting(orderPtr->getStatus())
+             << endl;
         cout << endl;
     } else {
         cout << "Order dengan ID [" << idOrder << "] tidak ditemukan.\n";
@@ -164,22 +198,37 @@ void printOrderById(string idOrder) {
 }
 
 
-void printOrderByProduk(string namaProduk) {
+void printOrderByProduk(string namaProduk, string option) {
     auto _it = idListByProduk.find(namaProduk);
     if (_it != idListByProduk.end()) {
         auto it = orderListByProduk.find(_it->second);
-        //sort bedasarkan tanggal
-		sort(it->second.begin(), it->second.end(), [](const shared_ptr<Order>& a, const shared_ptr<Order>& b) {
-			return a->getTanggal() < b->getTanggal();
-        });
-        cout << "Order dengan produk [" << namaProduk << "] ditemukan!\n";
+
+        vector<shared_ptr<Order>> orders;
+
         for (auto& orderPtr : it->second) {
-            cout << "Order: " << orderPtr->getIdOrder()
-                << ", Tanggal Order: " << orderPtr->getTanggal()
-                << ", Kuantitas: " << orderPtr->getKuantitas()
-                << ", Status: " << statusToSting(orderPtr->getStatus())
-                << "\n";
+            orders.push_back(orderPtr);
         }
+        sortOrders(orders, option);
+
+        cout << "Order dengan produk [" << namaProduk << "] ditemukan!\n";
+
+        cout << left;
+        cout << setw(10) << "ORDER" 
+             << setw(15) << "TANGGAL" 
+             << setw(10) << "QTY" 
+             << setw(10) << "STATUS" 
+             << endl;
+    
+        cout << string((10+15+10+10), '-') << endl;
+
+        for (auto& orderPtr : orders) {
+            cout << setw(10) << orderPtr->getIdOrder()
+                 << setw(15) << orderPtr->getTanggal()
+                 << setw(10) << orderPtr->getKuantitas()
+                 << setw(10) << statusToSting(orderPtr->getStatus())
+                 << endl;
+        }
+        cout << endl;
     } else {
         cout << "Order dengan produk [" << namaProduk << "] tidak ditemukan.\n";
 		cout << endl;
@@ -203,6 +252,7 @@ void batalkanPesanan(string idOrder) {
     cout << endl;
 }
 
+
 void undoPembatalan() {
     if (!undoStack.empty()) {
         auto lastDeleted = undoStack.top();
@@ -215,7 +265,6 @@ void undoPembatalan() {
         cout << "UNDO-PEMBATALAN GAGAL. Tidak ada yang bisa diundo.\n" << endl;
     }
 }
-
 
 
 void printGreetings() {
@@ -255,20 +304,14 @@ int main() {
 	// load produk & order dari .json
     loadProdukFromJson("list-produk.json");
 	loadOrderFromJson("list-order-awal.json");
-    
-	// // sort orderQueue berdasarkan tanggal
-	// sort(orderQueue.begin(), orderQueue.end(), [](const shared_ptr<Order>& a, const shared_ptr<Order>& b) {
-    //     return a->getTanggal() < b->getTanggal();
-	// });
-
 
     cout << CLEAR_SCREEN;
     printGreetings();
 
-    string input;
-    string command;
-    string args;
-    string option;
+    string input = "";
+    string command = "";
+    string args = "";
+    string option = "";
     // baca input
     cout << "Masukkan perintah: ";
     getline(cin, input);
@@ -288,7 +331,7 @@ int main() {
         } else if (command == "PRODUK") {
             iss >> args;
             iss >> option;
-            printOrderByProduk(args);
+            printOrderByProduk(args, option);
         } else if (command == "ORDER") {
             iss >> args;
             iss >> option;
@@ -303,6 +346,11 @@ int main() {
             cout << command << endl;
         }
         
+        // reset 
+        input = "";
+        command = "";
+        args = "";
+        option = "";
         // baca input lagi
         cout << "Masukkan perintah: ";
         getline(cin, input);
@@ -312,16 +360,13 @@ int main() {
         iss >> command;
         }
     
-    saveOrderToJson("list-order.json");
+    // saveOrderToJson("list-order.json"); // gatau bakal dipake apa enggak
 }
 
 
 
 rapidjson::Document loadJsonFile(const char *path) {
 	FILE *fp = fopen(path, "rb");
-	// if (!fp) {
-	// 	throw runtime_error("Failed to open file");
-	// }
 
 	char readBuffer[65536];
 	rapidjson::FileReadStream is(fp, readBuffer, sizeof(readBuffer));
@@ -331,12 +376,9 @@ rapidjson::Document loadJsonFile(const char *path) {
 
 	fclose(fp);
 
-	// if (doc.HasParseError()) {
-	// 	throw runtime_error("Failed to parse JSON");
-	// }
-
 	return doc;
 }
+
 
 void loadProdukFromJson(const char *path) {
 	rapidjson::Document doc = loadJsonFile(path);
@@ -347,6 +389,7 @@ void loadProdukFromJson(const char *path) {
         idListByProduk[value] = key;
     }
 }
+
 
 void loadOrderFromJson(const char *path) {
 	rapidjson::Document doc = loadJsonFile(path);
@@ -380,7 +423,6 @@ void saveOrderToJson(const char* path) {
     }
 
     FILE* fp = fopen(path, "wb");
-    // if (!fp) throw runtime_error("Failed to open file");
 
     char writeBuffer[65536];
     rapidjson::FileWriteStream os(fp, writeBuffer, sizeof(writeBuffer));
