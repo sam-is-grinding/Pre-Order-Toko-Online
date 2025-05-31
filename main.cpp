@@ -376,7 +376,7 @@ int main() {
         } else if (command == "UNDO") {
             undoPembatalan();
         } else {
-            cout << "gaada beruh" << endl;
+            cout << "Perintah tidak ditemukan." << endl;
             cout << command << endl;
         }
         
