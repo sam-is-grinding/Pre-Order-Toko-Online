@@ -334,6 +334,7 @@ int main() {
 	// load produk & order dari .json
     loadProdukFromJson("list-produk.json");
 	loadOrderFromJson("list-order-awal.json");
+	// loadOrderFromJson("list-order.json");
 
     cout << CLEAR_SCREEN;
     printGreetings();
@@ -393,7 +394,7 @@ int main() {
         iss >> command;
         }
     
-    // saveOrderToJson("list-order.json"); // gatau bakal dipake apa enggak
+    saveOrderToJson("list-order.json");
 }
 
 
@@ -434,6 +435,22 @@ void loadOrderFromJson(const char *path) {
         StatusOrder status  = stringToStatus(order["status"].GetString()); 
 		registerOrder(make_shared<Order>(idOrder, idProduk, tanggal, kuantitas, status));
 	}
+
+    // kalo statusnya dibatalkan / selesai
+    for (int i = 0; i < orderQueue.size(); i++) {
+        shared_ptr<Order> order = orderQueue[i];
+        switch (order->getStatus()) {
+            case StatusOrder::Dibatalkan:
+                undoStack.push(order, i);
+                orderQueue.erase(orderQueue.begin() + i);        
+                break;
+            case StatusOrder::Selesai:
+                orderQueue.erase(orderQueue.begin() + i);
+                break;
+            default:
+                break;
+        }
+    }
 }
 
 
@@ -442,7 +459,13 @@ void saveOrderToJson(const char* path) {
     doc.SetArray();
     auto& allocator = doc.GetAllocator();
 
+    VectorOrderPointer orders;
     for (auto& [id, orderPtr] : orderListById) {
+        orders.push_back(orderPtr);
+    }
+    sortOrders(orders, "AT");
+
+    for (auto& orderPtr : orders) {
         Order& order = *orderPtr;
 
         rapidjson::Value obj(rapidjson::kObjectType);
